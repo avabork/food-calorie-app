@@ -13,7 +13,7 @@ st.set_page_config(
 )
 
 # Hide warnings
-st.set_option('deprecation.showfileUploaderEncoding', False)
+
 
 # ==========================================
 # 2. LOAD MODEL & DB
@@ -123,4 +123,5 @@ if file is not None:
             "Nutrient": ["Protein", "Carbs", "Fat"],
             "Grams": [data['p'], data['c'], data['f']]
         }
+
         st.bar_chart(chart_data, x="Nutrient", y="Grams", color="#4CAF50")
