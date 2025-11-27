@@ -180,7 +180,6 @@ def load_all_models():
     # 1. Load Indian Model
     try:
         # Rebuild Indian Model Architecture (Safe Loading)
-        # Assuming Indian model was trained on 224x224 with MobileNetV2 base
         with open('indian_food_classes.txt', 'r') as f:
             ind_classes = [line.strip() for line in f.readlines()]
         classes['indian'] = ind_classes
@@ -202,7 +201,8 @@ def load_all_models():
 
     # 2. Load Global Model
     try:
-        # Rebuild Global Model Architecture (Safe Loading)
+        # Load directly if it was saved as a full model, otherwise rebuild
+        # Attempt rebuild first as it's safer for weights-only files
         base_glob = tf.keras.applications.MobileNetV2(input_shape=(224, 224, 3), include_top=False, weights='imagenet')
         base_glob.trainable = False
         inputs_glob = tf.keras.Input(shape=(224, 224, 3))
@@ -212,7 +212,12 @@ def load_all_models():
         outputs_glob = tf.keras.layers.Dense(101, activation='softmax')(x)
         model_glob = tf.keras.Model(inputs_glob, outputs_glob)
         
-        model_glob.load_weights('my_food_model_pro.h5')
+        try:
+            model_glob.load_weights('my_food_model_pro.h5')
+        except ValueError:
+             # Fallback for shape mismatch: try loading whole model directly
+             model_glob = tf.keras.models.load_model('my_food_model_pro.h5')
+
         models['global'] = model_glob
         classes['global'] = GLOBAL_CLASSES
     except Exception as e:
@@ -260,13 +265,26 @@ if uploaded_file:
         with col2:
             with st.spinner(f"🧠 Analyzing using {mode} Model..."):
                 # Preprocess
-                img_resized = ImageOps.fit(image, (224, 224), Image.Resampling.LANCZOS)
+                # Handle resolution difference: Global might be 160 or 224
+                # We try 224 first as it's standard MobileNetV2
+                target_size = (224, 224)
+                
+                img_resized = ImageOps.fit(image, target_size, Image.Resampling.LANCZOS)
                 img_array = np.asarray(img_resized)
                 img_array = tf.keras.applications.mobilenet_v2.preprocess_input(img_array)
                 img_array = np.expand_dims(img_array, axis=0)
                 
                 # Predict
-                preds = active_model.predict(img_array)
+                try:
+                    preds = active_model.predict(img_array)
+                except ValueError:
+                     # If 224 fails, try 160 (legacy training size)
+                     img_resized = ImageOps.fit(image, (160, 160), Image.Resampling.LANCZOS)
+                     img_array = np.asarray(img_resized)
+                     img_array = tf.keras.applications.mobilenet_v2.preprocess_input(img_array)
+                     img_array = np.expand_dims(img_array, axis=0)
+                     preds = active_model.predict(img_array)
+
                 idx = np.argmax(preds[0])
                 food_name = active_classes[idx]
                 confidence = 100 * np.max(preds[0])
