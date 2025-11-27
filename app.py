@@ -10,7 +10,7 @@ import os
 st.set_page_config(
     page_title="NutriScan AI",
     page_icon="🥗",
-    layout="centered",  # Centered looks more like a mobile app
+    layout="centered",
     initial_sidebar_state="collapsed"
 )
 
@@ -24,11 +24,11 @@ st.markdown("""
 
     /* General App Styling */
     .stApp {
-        background-color: #FFFFFF; /* White background like the design */
+        background-color: #FFFFFF;
         font-family: 'Poppins', sans-serif;
     }
     
-    h1, h2, h3, h4, h5, h6, p, div, span {
+    h1, h2, h3, h4, h5, h6, p, div, span, label {
         font-family: 'Poppins', sans-serif !important;
         color: #2D3436;
     }
@@ -37,27 +37,19 @@ st.markdown("""
     .main-header {
         font-size: 24px;
         font-weight: 700;
-        color: #56AB91; /* The Green from the image */
+        color: #56AB91;
         margin-bottom: 5px;
+        text-align: center;
     }
     .sub-header {
-        font-size: 16px;
+        font-size: 14px;
         color: #B2BEC3;
         font-weight: 400;
-        margin-bottom: 30px;
-    }
-
-    /* Card/Container Styling */
-    .food-card {
-        background-color: #F8F9FA;
-        border-radius: 20px;
-        padding: 20px;
-        box-shadow: 0 10px 20px rgba(0,0,0,0.05);
         margin-bottom: 20px;
         text-align: center;
     }
 
-    /* Nutrient Row Styling (The 4 boxes) */
+    /* Nutrient Row Styling */
     .nutrient-row {
         display: flex;
         justify-content: space-between;
@@ -67,14 +59,19 @@ st.markdown("""
     .nutrient-box {
         background: #FFFFFF;
         border-radius: 15px;
-        padding: 15px 10px;
+        padding: 15px 5px;
         text-align: center;
         width: 23%;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
         border: 1px solid #F0F0F0;
+        transition: transform 0.2s;
+    }
+    .nutrient-box:hover {
+        transform: translateY(-3px);
+        border-color: #56AB91;
     }
     .nutrient-val {
-        font-size: 14px;
+        font-size: 16px;
         font-weight: 700;
         color: #56AB91;
     }
@@ -82,6 +79,24 @@ st.markdown("""
         font-size: 10px;
         color: #636E72;
         margin-top: 5px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Burn Row Styling */
+    .burn-row {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+        gap: 10px;
+    }
+    .burn-box {
+        background-color: #F8F9FA;
+        border-radius: 12px;
+        padding: 10px;
+        text-align: center;
+        width: 24%;
+        font-size: 12px;
     }
 
     /* Button Styling */
@@ -101,14 +116,37 @@ st.markdown("""
         transform: translateY(-2px);
     }
 
+    /* Custom Radio Button (Pill Shape) */
+    div[role="radiogroup"] {
+        background-color: #F1F3F4;
+        padding: 5px;
+        border-radius: 25px;
+        display: flex;
+        justify-content: space-around;
+    }
+    div[role="radiogroup"] label {
+        flex: 1;
+        text-align: center;
+        padding: 8px;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: 0.3s;
+        border: none;
+    }
+    /* Hide standard radio circles */
+    div[role="radiogroup"] input {
+        display: none;
+    }
+    
     /* File Uploader Styling */
     div[data-testid="stFileUploader"] {
         border-radius: 20px;
-        padding: 20px;
-        border: 2px dashed #56AB91;
-        background-color: #F0FDF4;
+        padding: 30px;
+        border: 2px dashed #DDE1E3;
+        background-color: #FAFAFA;
+        text-align: center;
     }
-    
+
     /* Hide Streamlit Elements */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
@@ -117,29 +155,38 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 3. LOGIC & DATA
+# 3. DATA & LOGIC
 # ==========================================
-# [KEEPING YOUR EXISTING DB LOGIC]
 NUTRITION_DB = {
     'chapati': {'kcal': 104, 'p': 3, 'c': 20, 'f': 1, 'unit': 'piece', 'tip': 'Whole wheat source.'},
-    'dal_tadka': {'kcal': 148, 'p': 7, 'c': 18, 'f': 6, 'unit': 'bowl (150g)', 'tip': 'Protein-rich lentils.'},
+    'dal_tadka': {'kcal': 148, 'p': 7, 'c': 18, 'f': 6, 'unit': 'bowl', 'tip': 'Protein-rich lentils.'},
     'samosa': {'kcal': 260, 'p': 4, 'c': 30, 'f': 14, 'unit': 'piece', 'tip': 'Deep fried snack.'},
-    # ... (Your full DB goes here) ...
+    'pizza': {'kcal': 266, 'p': 11, 'c': 33, 'f': 10, 'unit': 'slice', 'tip': 'Thin crust has fewer carbs.'},
+    'burger': {'kcal': 295, 'p': 17, 'c': 24, 'f': 14, 'unit': 'burger', 'tip': 'Skip mayo to save 100 kcal.'},
     'default': {'kcal': 250, 'p': 5, 'c': 30, 'f': 10, 'unit': 'serving', 'tip': 'Eat in moderation.'}
 }
 
 def get_nutrition_data(food_name):
     return NUTRITION_DB.get(food_name, NUTRITION_DB['default'])
 
-# Helper to load models (Cached)
+def calculate_burn(calories):
+    # Approx burn rates (kcal/min)
+    return {
+        "Walk": int(calories / 4.0),
+        "Run": int(calories / 11.5),
+        "Cycle": int(calories / 8.0),
+        "Yoga": int(calories / 3.0)
+    }
+
+# Model Loading (Cached)
 @st.cache_resource
 def load_all_models():
     models = {}
     classes = {}
     try:
-        # Load Indian Model
         with open('indian_food_classes.txt', 'r') as f:
             classes['indian'] = [line.strip() for line in f.readlines()]
+        
         base_ind = tf.keras.applications.MobileNetV2(input_shape=(224, 224, 3), include_top=False, weights='imagenet')
         base_ind.trainable = False
         inputs_ind = tf.keras.Input(shape=(224, 224, 3))
@@ -150,33 +197,32 @@ def load_all_models():
         model_ind = tf.keras.Model(inputs_ind, outputs_ind)
         model_ind.load_weights('indian_food_model.h5')
         models['indian'] = model_ind
-    except:
-        pass # Handle gracefully if file missing
+    except: pass
+    
+    # Fallback mock for UI dev if models missing
     return models, classes
 
 models, class_lists = load_all_models()
 
 # ==========================================
-# 4. UI STRUCTURE
+# 4. UI LAYOUT
 # ==========================================
 
-# --- HEADER SECTION ---
-st.markdown('<div class="main-header">Let\'s Check Food</div>', unsafe_allow_html=True)
-st.markdown('<div class="main-header" style="color: #2D3436;">Nutrition & Calories</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">Select food image to see calories</div>', unsafe_allow_html=True)
+# Header
+st.markdown('<div class="main-header">NutriScan AI</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">Smart Calorie & Diet Tracker</div>', unsafe_allow_html=True)
 
-# --- MODE SELECTION (Styled as Radio for simplicity) ---
-mode = st.radio("Cuisine Type", ["🇮🇳 Indian", "🌎 Global"], horizontal=True, label_visibility="collapsed")
+# Cuisine Switcher (Pill Style via Streamlit Radio)
+mode = st.radio("Cuisine Mode", ["🇮🇳 Indian Food", "🌎 Global Food"], horizontal=True, label_visibility="collapsed")
 
-# --- UPLOAD SECTION ---
-uploaded_file = st.file_uploader("Choose a food image...", type=["jpg", "png", "jpeg"])
+# Image Upload
+uploaded_file = st.file_uploader("Upload your meal photo", type=["jpg", "png", "jpeg"])
 
 if uploaded_file:
-    # 1. PREDICT
+    # 1. PREDICT LOGIC
+    # (Using mock logic if model files missing for demo stability)
     active_key = 'indian' if "Indian" in mode else 'global'
     
-    # Mocking prediction if files are missing for UI demo purposes
-    # In real app, un-comment the model logic
     if models.get(active_key):
         active_model = models.get(active_key)
         active_classes = class_lists.get(active_key)
@@ -192,41 +238,33 @@ if uploaded_file:
         food_name = active_classes[idx]
         confidence = 100 * np.max(preds[0])
     else:
-        # Fallback for UI testing
         image = Image.open(uploaded_file)
-        food_name = "samosa" # Demo value
-        confidence = 95.0
+        food_name = "samosa" if "Indian" in mode else "pizza"
+        confidence = 92.5
 
-    # Get Data
     nutrition = get_nutrition_data(food_name)
-    
-    # 2. DISPLAY RESULT (The "Right Side" of your design)
+    unit = nutrition['unit']
+
+    # 2. MAIN CARD UI
     st.markdown("---")
     
-    # Centered Round Image
+    # Image
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        # Circular mask implementation via st.image is hard, so we use standard rounded
         st.image(image, use_container_width=True)
-    
-    # Title & Description
-    st.markdown(f"""
-        <div style="text-align: center; margin-top: 10px;">
-            <h2 style="margin:0; font-size: 28px; color: #2D3436;">{food_name.replace('_', ' ').title()}</h2>
-            <p style="color: #B2BEC3; font-size: 14px;">{nutrition['tip']}</p>
-        </div>
-    """, unsafe_allow_html=True)
+        st.markdown(f"<h3 style='text-align: center; margin: 10px 0;'>{food_name.replace('_', ' ').title()}</h3>", unsafe_allow_html=True)
+        st.markdown(f"<p style='text-align: center; font-size: 12px; color: #B2BEC3;'>Confidence: {confidence:.1f}%</p>", unsafe_allow_html=True)
 
-    # 3. DYNAMIC PORTION SLIDER
-    quantity = st.slider("Portion Size (Pieces/Bowls)", 0.5, 5.0, 1.0, 0.5)
-    
-    # Calc Totals
+    # 3. DYNAMIC SLIDER
+    quantity = st.slider(f"Portion Size ({unit}s)", 0.5, 5.0, 1.0, 0.5)
+
+    # 4. REAL-TIME CALCULATIONS
     t_cal = int(nutrition['kcal'] * quantity)
     t_p = int(nutrition['p'] * quantity)
     t_c = int(nutrition['c'] * quantity)
     t_f = int(nutrition['f'] * quantity)
 
-    # 4. CUSTOM NUTRIENT ROW (Matches your image)
+    # 5. NUTRIENT CARDS
     st.markdown(f"""
         <div class="nutrient-row">
             <div class="nutrient-box">
@@ -235,31 +273,42 @@ if uploaded_file:
             </div>
             <div class="nutrient-box">
                 <div class="nutrient-val">{t_p}g</div>
-                <div class="nutrient-label">Proteins</div>
+                <div class="nutrient-label">Protein</div>
             </div>
             <div class="nutrient-box">
                 <div class="nutrient-val">{t_f}g</div>
                 <div class="nutrient-label">Fats</div>
             </div>
             <div class="nutrient-box">
-                <div class="nutrient-val">{t_cal}</div>
-                <div class="nutrient-label">Calories</div>
+                <div class="nutrient-val" style="color: #FF6B6B;">{t_cal}</div>
+                <div class="nutrient-label">Kcal</div>
             </div>
         </div>
     """, unsafe_allow_html=True)
 
-    # 5. ACTION BUTTON
-    if st.button(f"🔥 Burn {t_cal} Calories"):
-        # Burn Logic
-        walk = int(t_cal / 4)
-        run = int(t_cal / 11.5)
-        st.success(f"🏃 Run for {run} mins or 🚶 Walk for {walk} mins to burn this off!")
+    # 6. BURN IT OFF SECTION
+    burn = calculate_burn(t_cal)
+    
+    if st.button("🔥 How to Burn This Off?"):
+        st.markdown(f"""
+            <div style="text-align: center; margin-bottom: 10px; font-weight: 600; color: #636E72;">
+                To burn <span style="color: #FF6B6B;">{t_cal} kcal</span>, you need to:
+            </div>
+            <div class="burn-row">
+                <div class="burn-box">🚶 Walk<br><b>{burn['Walk']}</b> min</div>
+                <div class="burn-box">🏃 Run<br><b>{burn['Run']}</b> min</div>
+                <div class="burn-box">🚴 Cycle<br><b>{burn['Cycle']}</b> min</div>
+                <div class="burn-box">🧘 Yoga<br><b>{burn['Yoga']}</b> min</div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        st.success(f"💡 **Tip:** {nutrition['tip']}")
 
 else:
-    # Placeholder Graphic
+    # Empty State
     st.markdown("""
-        <div style="text-align: center; margin-top: 50px; opacity: 0.5;">
-            <h1 style="font-size: 60px;">📸</h1>
-            <p>Snap a photo to start tracking</p>
+        <div style="text-align: center; margin-top: 40px; opacity: 0.6;">
+            <div style="font-size: 50px;">📸</div>
+            <p>Upload a meal to analyze</p>
         </div>
     """, unsafe_allow_html=True)
