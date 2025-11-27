@@ -14,31 +14,77 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Custom CSS for Professional UI
 st.markdown("""
     <style>
-    .main { background-color: #0E1117; }
-    .stApp { background-color: #0E1117; color: #FAFAFA; }
-    /* Metric Cards */
+    /* Main Background */
+    .main {
+        background-color: #0E1117;
+    }
+    .stApp {
+        background-color: #0E1117;
+        color: #FAFAFA;
+    }
+    
+    /* Metric Cards Styling */
     div[data-testid="metric-container"] {
         background-color: #262730;
-        padding: 15px;
-        border-radius: 10px;
-        border: 1px solid #303030;
-        box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
-        transition: transform 0.2s;
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid #383A42;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        transition: all 0.3s ease;
     }
     div[data-testid="metric-container"]:hover {
-        transform: scale(1.02);
+        transform: translateY(-5px);
         border: 1px solid #4CAF50;
+        box-shadow: 0 8px 15px rgba(76, 175, 80, 0.2);
     }
-    h1 { color: #4CAF50; font-family: 'Helvetica Neue', sans-serif; font-weight: 700; text-align: center; }
+    
+    /* Headers */
+    h1 {
+        color: #4CAF50;
+        font-family: 'Segoe UI', sans-serif;
+        font-weight: 800;
+        text-align: center;
+        letter-spacing: -1px;
+        margin-bottom: 30px;
+    }
+    h2, h3 {
+        color: #E0E0E0;
+        font-weight: 600;
+    }
+    
     /* Button Styling */
     div.stButton > button {
-        background-color: #4CAF50; color: white; border-radius: 20px;
-        padding: 10px 24px; font-weight: bold; border: none; width: 100%;
+        background-color: #4CAF50;
+        color: white;
+        border-radius: 8px;
+        padding: 12px 28px;
+        font-weight: 600;
+        border: none;
+        width: 100%;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
     div.stButton > button:hover {
-        background-color: #45a049; box-shadow: 0px 4px 15px rgba(76, 175, 80, 0.4);
+        background-color: #45a049;
+        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+        transform: scale(1.02);
+    }
+    
+    /* Info Box Styling */
+    .stAlert {
+        background-color: #1E2329;
+        border: 1px solid #4CAF50;
+        border-radius: 8px;
+    }
+    
+    /* Sidebar Styling */
+    section[data-testid="stSidebar"] {
+        background-color: #161B22;
+        border-right: 1px solid #30363D;
     }
     </style>
     """, unsafe_allow_html=True)
