@@ -5,13 +5,70 @@ from PIL import Image, ImageOps
 import os
 
 # ==========================================
-# 1. APP CONFIGURATION
+# 1. APP CONFIGURATION & CUSTOM CSS
 # ==========================================
 st.set_page_config(
     page_title="Indian Food Calorie AI",
     page_icon="🍛",
-    layout="centered"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
+
+# Custom CSS for a modern dark look
+st.markdown("""
+    <style>
+    .main {
+        background-color: #0E1117;
+    }
+    .stApp {
+        background-color: #0E1117;
+        color: #FAFAFA;
+    }
+    /* Metric Cards */
+    div[data-testid="metric-container"] {
+        background-color: #262730;
+        padding: 15px;
+        border-radius: 10px;
+        border: 1px solid #303030;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+        transition: transform 0.2s;
+    }
+    div[data-testid="metric-container"]:hover {
+        transform: scale(1.02);
+        border: 1px solid #FF4B4B;
+    }
+    /* Custom Title */
+    h1 {
+        color: #FF4B4B;
+        font-family: 'Helvetica Neue', sans-serif;
+        font-weight: 700;
+        text-align: center;
+        padding-bottom: 20px;
+    }
+    /* Info Box */
+    .stAlert {
+        background-color: #262730;
+        color: #FAFAFA;
+        border: 1px solid #4CAF50;
+    }
+    /* Button Styling */
+    div.stButton > button {
+        background-color: #FF4B4B;
+        color: white;
+        border-radius: 20px;
+        padding: 10px 24px;
+        font-weight: bold;
+        border: none;
+        width: 100%;
+        transition: 0.3s;
+    }
+    div.stButton > button:hover {
+        background-color: #FF2B2B;
+        color: white;
+        box-shadow: 0px 4px 15px rgba(255, 75, 75, 0.4);
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
 # Hide deprecation warnings
 st.set_option('client.showErrorDetails', False)
@@ -62,7 +119,6 @@ def load_artifacts():
         class_names = [line.strip() for line in f.readlines()]
     
     # 2. Rebuild & Load Weights (Fixes the "2 inputs" error)
-    # Instead of load_model(), we rebuild the architecture and load weights
     try:
         # Recreate the exact same architecture used in training
         base_model = tf.keras.applications.MobileNetV2(
@@ -122,36 +178,67 @@ def predict_image(image_file):
 # ==========================================
 # 5. USER INTERFACE
 # ==========================================
-st.title("🍛 AI Indian Food Calorie Scanner")
-st.write("Upload a photo of your meal to instantly estimate calories and macros!")
 
-uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "png", "jpeg"])
+# Sidebar for inputs
+with st.sidebar:
+    st.title("📸 Input")
+    uploaded_file = st.file_uploader("Upload Image", type=["jpg", "png", "jpeg"])
+    
+    st.markdown("---")
+    st.markdown("### 💡 How to use")
+    st.info(
+        "1. Upload a clear photo of food.\n"
+        "2. Click 'Analyze Nutrition'.\n"
+        "3. Get instant calorie stats!"
+    )
+
+# Main Content Area
+st.title("🍛 Indian Food Calorie AI")
+st.markdown("##### Smart Nutritional Tracking Powered by Deep Learning")
 
 if uploaded_file is not None:
-    st.image(uploaded_file, caption='Your Upload', width=300)
+    # Two columns: Image on left, Results on right
+    col1, col2 = st.columns([1, 1])
     
-    if st.button("🔍 Analyze Nutrition"):
-        with st.spinner("Analyzing pixels..."):
-            food_name, confidence = predict_image(uploaded_file)
-            nutrition = get_nutrition(food_name)
-        
-        # --- RESULTS SECTION ---
-        st.markdown(f"### 🍽️ Detected: **{food_name.replace('_', ' ').title()}**")
-        st.caption(f"Confidence: {confidence:.1f}%")
-        
-        # Metrics Row
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("🔥 Calories", f"{nutrition['kcal']}", "kcal")
-        col2.metric("🥩 Protein", f"{nutrition['p']}g")
-        col3.metric("🍞 Carbs", f"{nutrition['c']}g")
-        col4.metric("🥑 Fat", f"{nutrition['f']}g")
-        
-        st.info(f"💡 **Health Tip:** {nutrition['tip']}")
-        
-        # Chart
-        st.subheader("Macro Nutrient Profile")
-        chart_data = {
-            "Nutrient": ["Protein", "Carbs", "Fat"],
-            "Grams": [nutrition['p'], nutrition['c'], nutrition['f']]
-        }
-        st.bar_chart(chart_data, x="Nutrient", y="Grams", color="#FF4B4B")
+    with col1:
+        st.image(uploaded_file, caption='Your Meal', use_container_width=True)
+        analyze_btn = st.button("🔍 Analyze Nutrition")
+    
+    if analyze_btn:
+        with col2:
+            with st.spinner("🧠 Analyzing food texture & shape..."):
+                food_name, confidence = predict_image(uploaded_file)
+                nutrition = get_nutrition(food_name)
+            
+            # --- RESULTS SECTION ---
+            st.success(f"**Detected:** {food_name.replace('_', ' ').title()}")
+            st.progress(int(confidence), text=f"Confidence: {confidence:.1f}%")
+            
+            # Metrics Row (Custom Cards via CSS)
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("🔥 Calories", f"{nutrition['kcal']}", "kcal")
+            m2.metric("🥩 Protein", f"{nutrition['p']}g")
+            m3.metric("🍞 Carbs", f"{nutrition['c']}g")
+            m4.metric("🥑 Fat", f"{nutrition['f']}g")
+            
+            # Health Tip Box
+            st.info(f"💡 **Health Tip:** {nutrition['tip']}")
+            
+            # Chart
+            st.subheader("Macro Distribution")
+            chart_data = {
+                "Nutrient": ["Protein", "Carbs", "Fat"],
+                "Grams": [nutrition['p'], nutrition['c'], nutrition['f']]
+            }
+            st.bar_chart(chart_data, x="Nutrient", y="Grams", color="#FF4B4B")
+else:
+    # Placeholder when no image is uploaded
+    st.markdown(
+        """
+        <div style='text-align: center; padding: 50px; color: #555;'>
+            <h3>👈 Upload an image from the sidebar to get started!</h3>
+            <p>Supported formats: JPG, PNG, JPEG</p>
+        </div>
+        """, 
+        unsafe_allow_html=True
+    )
